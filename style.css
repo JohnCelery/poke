@@ -71,6 +71,7 @@ canvas {
   border-radius: 0.75rem;
   border: 4px solid var(--accent);
   background: #1e293b;
+  image-rendering: pixelated;
 }
 
 #hud {
