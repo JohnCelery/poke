@@ -1,0 +1,17 @@
+{
+  "name": "poke",
+  "version": "1.0.0",
+  "description": "a pokemon style game",
+  "main": "index.js",
+  "scripts": {
+    "dev": "http-server -c-1 -p 4173 .",
+    "start": "http-server -c-1 -p 4173 ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
