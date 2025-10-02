@@ -1,0 +1,241 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f1f5f9;
+  --panel: rgba(255, 255, 255, 0.9);
+  --text: #0f172a;
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  font-family: "Press Start 2P", "Segoe UI", sans-serif;
+}
+
+@font-face {
+  font-family: "Press Start 2P";
+  src: url("https://fonts.gstatic.com/s/pressstart2p/v11/yl3apb7Khg8mFqg1I0AnP86BO_OqYlAM.woff2") format("woff2");
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: 1rem;
+}
+
+.layout {
+  max-width: 1100px;
+  width: 100%;
+  background: var(--panel);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.15);
+  backdrop-filter: blur(6px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 1.5rem;
+}
+
+header h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  margin-top: 0.5rem;
+  color: rgba(15, 23, 42, 0.7);
+}
+
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.game-area {
+  position: relative;
+  display: grid;
+  gap: 0.75rem;
+}
+
+canvas {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 4px solid var(--accent);
+  background: #1e293b;
+}
+
+#hud {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.status {
+  display: flex;
+  gap: 0.35rem;
+  align-items: baseline;
+}
+
+.status .label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(15, 23, 42, 0.7);
+  font-weight: 700;
+}
+
+.dialogue {
+  min-height: 3.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(37, 99, 235, 0.1);
+  border: 2px solid var(--accent);
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.instructions {
+  background: rgba(15, 23, 42, 0.05);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.instructions ol {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.95rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.instructions li::marker {
+  color: var(--accent);
+}
+
+.tip {
+  padding: 0.75rem 1rem;
+  background: rgba(37, 99, 235, 0.15);
+  border-radius: 0.75rem;
+  border: 1px dashed var(--accent-dark);
+}
+
+footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: rgba(15, 23, 42, 0.6);
+}
+
+.battle {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  background: rgba(15, 23, 42, 0.85);
+  color: #f8fafc;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  grid-template-rows: auto auto 1fr;
+  gap: 1rem;
+  place-items: stretch;
+}
+
+.battle__panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.battle__panel {
+  background: rgba(15, 23, 42, 0.7);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.health-bar {
+  position: relative;
+  height: 18px;
+  background: rgba(71, 85, 105, 0.8);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.health-bar__fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  transform-origin: left center;
+  transform: scaleX(1);
+  transition: transform 0.4s ease;
+}
+
+.battle__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+.battle__actions button {
+  padding: 0.75rem 1rem;
+  background: var(--accent);
+  border: none;
+  color: #f8fafc;
+  border-radius: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.battle__actions button:hover,
+.battle__actions button:focus {
+  transform: translateY(-2px);
+  background: var(--accent-dark);
+  outline: none;
+}
+
+.battle__log {
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 1rem;
+  font-size: 0.95rem;
+  overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  body {
+    padding: 0.5rem;
+  }
+  .layout {
+    padding: 1rem;
+  }
+  main {
+    grid-template-columns: 1fr;
+  }
+  canvas {
+    height: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

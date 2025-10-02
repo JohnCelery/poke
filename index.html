@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Poke Adventure</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <header>
+        <h1>Poke Adventure</h1>
+        <p class="subtitle">A pocket monster experience playable right in your browser.</p>
+      </header>
+      <main>
+        <section class="game-area">
+          <canvas id="gameCanvas" width="640" height="480" aria-label="Overworld view"></canvas>
+          <div id="hud" aria-live="polite">
+            <div class="status">
+              <span class="label">Location:</span>
+              <span id="locationLabel">Verdant Plains</span>
+            </div>
+            <div class="status">
+              <span class="label">Party:</span>
+              <span id="partyLabel"></span>
+            </div>
+            <div class="status">
+              <span class="label">Controls:</span>
+              <span>Arrow Keys / WASD to move · Enter/Space to confirm</span>
+            </div>
+          </div>
+          <div id="dialogue" class="dialogue" role="status" aria-live="assertive"></div>
+          <div id="battleUI" class="battle" hidden>
+            <div class="battle__panels">
+              <div class="battle__panel">
+                <h2>Trainer</h2>
+                <p id="playerMonLabel"></p>
+                <div class="health-bar">
+                  <div id="playerHealth" class="health-bar__fill"></div>
+                </div>
+              </div>
+              <div class="battle__panel">
+                <h2>Wild Creature</h2>
+                <p id="enemyMonLabel"></p>
+                <div class="health-bar">
+                  <div id="enemyHealth" class="health-bar__fill"></div>
+                </div>
+              </div>
+            </div>
+            <div class="battle__actions" role="group" aria-label="Battle actions">
+              <button data-action="attack">Attack</button>
+              <button data-action="special">Special</button>
+              <button data-action="heal">Heal</button>
+              <button data-action="run">Run</button>
+            </div>
+            <div id="battleLog" class="battle__log" aria-live="polite"></div>
+          </div>
+        </section>
+        <aside class="instructions">
+          <h2>How to Play</h2>
+          <ol>
+            <li>Use the arrow keys or WASD to move your trainer around the map.</li>
+            <li>Explore the tall grass to trigger wild encounters.</li>
+            <li>In battle choose from Attack, Special, Heal, or Run.</li>
+            <li>Defeat wild creatures to earn experience and level up your party.</li>
+          </ol>
+          <p class="tip">Tip: Special attacks are powerful but cost more energy. Heal restores some health.</p>
+        </aside>
+      </main>
+      <footer>
+        <p>Built for the browser &middot; Ready for GitHub Pages deployment.</p>
+      </footer>
+    </div>
+    <script type="module" src="game.js"></script>
+  </body>
+</html>
