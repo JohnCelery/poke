@@ -15,29 +15,82 @@ const enemyHealth = document.getElementById('enemyHealth');
 const TILE_SIZE = 32;
 const MOVE_SPEED = 180; // pixels per second
 
-const WORLD_ROWS = [
-  "####################",
-  "#....gggg....####..#",
-  "#....gggg....#..#..#",
-  "#....gggg....#..#..#",
-  "#..........###..#..#",
-  "#..####.......g.#..#",
-  "#..#..#..gggg.g.#..#",
-  "#..#..#..g..g...#..#",
-  "#..####..g..g..##..#",
-  "#........g..g......#",
-  "#..ggggggg......#..#",
-  "#..g#####g..###.#..#",
-  "#..g#c..gg..#...#..#",
-  "#..g#........#.....#",
-  "####################",
-];
+const rawMap = `
+############################################################
+#tttttttggggggggggggggggggggggggggggggggggggggggggggttttttt#
+#tttttttgtggtggtggtggtggtggtggtggtggtggtggtggtggtggtttttttt#
+#gggggggggggggggggggggggggggggggggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggggggggggggggggggggggggggggggggg#
+#gggggggs~~~sgggggggggggggggggggggggggggggggggggggggggggggg#
+#ggggggggs~~~sggggggggggggggggppggggggggggggggggggggggggggg#
+#ggggghgs~~~sgggggggghggggggggpgggggggggggggggggggggggggggg#
+#gggggggs~~~sgggggggggggggggggppggggggggggggggggggggggggggg#
+#ggggggggs~~~sggggggggggggggggpgggggggggggggggggggggggggggg#
+#gggffffffff~sggggggggggggggggppggggggwggwggwggwggwggwggwgg#
+#gggffffffff~sggggggggggggggggpgggggggggwggwggwggwggwggwggg#
+#gggffffffff~~sgggggggggggggggppgggggggwggwggwggwggwggwgggg#
+#ghgffffffff~sggggggggggggggggpgggggggwggwhgwggwggwggwggwgg#
+#gggffffffff~~sgggggggggggggggppggggggggwggwggwggwggwggwggg#
+#gggffffffff~~~sggggggggghggggpggggggggwggwggwggwggwghwgggg#
+#gggffffffff~~sgggggggggggggggppggggggggggggggggggggggggggg#
+#gggggggggs~~~sgggppppppppggggpgggggggggggggggggggggggggggg#
+#gggggggggggs~~~sgppppppppgggpppggggggggggggggggggggggggggg#
+#ggggggggggs~~~sggppppppppgggppgggggggggggggggggggggggggggg#
+#pppppppppppppppppppppppppppppppppppppppppppppppppppppppppp#
+#pppppppppppppppppppppppppppppppppppppppppppppppppppppppppp#
+#gggggggggpxx~~sgggggggggggggpppggggggggggggggggggggggggggg#
+#ggggggggggps~~BBBBBBBBggggggpppppgggggggggggggghgggggggggg#
+#ggggggggggggs~BbbbbbbBgggghgpppppBBBBBBBBBBggggggggggggggg#
+#gggggggggggs~~BbbbbbbBggggggpppppBbbbbbbbbBggggggggggggggg#
+#ghgggggggggs~~BbbbbbbBgggggggppggBbbbbbbbbBgggg^s^s^s^s^s^#
+#gggggggggggggsBbbbbbbBgggggggpgggBbbbbbbbbBggggs^s^s^s^s^s#
+#ggCCCCCCCCCCs~BBBdBBBBgggggggppggBbbbbbbbbBgggg^s^s^s^s^s^#
+#ggCccccccccCs~~~sggggggggggggpgggBBBBdddBBBggggs^s^s^s^s^s#
+#ggCccccccccCgs~~~sgggggggggggppgggggggggggggggg^s^s^s^s^s^#
+#ggCccccccccCgggggggggggggggggpgggggggggggggggggs^s^s^s^s^s#
+#ggCccccccccCgggggggggggggggggppgggggggggggggggg^s^s^s^s^s^#
+#ggCCCCddCCCCgggggggggggggggggpgggggggggggggggggs^s^s^s^s^s#
+#gggggggggggggggggggggggggggggppgggggggggggggggg^s^s^s^s^s^#
+############################################################
+`;
+
+const WORLD_ROWS = rawMap.trim().split('\n');
+const WORLD_HEIGHT = WORLD_ROWS.length;
+const WORLD_WIDTH = WORLD_ROWS[0].length;
+const WORLD_PIXEL_WIDTH = WORLD_WIDTH * TILE_SIZE;
+const WORLD_PIXEL_HEIGHT = WORLD_HEIGHT * TILE_SIZE;
 
 const tileDefinitions = {
-  '#': { color: '#0f172a', walkable: false, label: 'Forest Edge' },
-  '.': { color: '#1f2937', walkable: true, label: 'Village Path' },
-  'g': { color: '#14532d', overlay: '#22c55e', walkable: true, encounter: true, label: 'Verdant Grass' },
-  'c': { color: '#ea580c', walkable: true, heal: true, label: 'Campfire Rest' },
+  '#': { color: '#0b1120', walkable: false, label: 'Ancient Pines' },
+  t: { color: '#14532d', overlay: '#1d4c2f', walkable: false, label: 'Thick Evergreen Canopy' },
+  g: { color: '#166534', overlay: '#22c55e', walkable: true, encounter: true, label: 'Verdant Expanse', encounterRate: 0.18 },
+  h: { color: '#166534', overlay: '#4ade80', walkable: true, encounter: true, label: 'Blooming Thicket', encounterRate: 0.28 },
+  w: { color: '#1a4731', overlay: '#facc15', walkable: true, encounter: true, label: 'Wildflower Meadow', encounterRate: 0.12 },
+  f: { color: '#854d0e', overlay: '#f97316', walkable: true, label: 'Golden Farmland' },
+  p: { color: '#475569', overlay: '#94a3b8', walkable: true, label: "Traveler's Causeway" },
+  s: { color: '#fbbf24', overlay: '#fef08a', walkable: true, label: 'Riverbank Sand' },
+  '~': { color: '#0369a1', overlay: '#0ea5e9', walkable: false, label: 'Silverstream River' },
+  r: { color: '#0ea5e9', overlay: '#38bdf8', walkable: true, label: 'Shallow Crossing' },
+  B: { color: '#1e293b', overlay: '#334155', walkable: false, label: 'Village Wall' },
+  b: { color: '#475569', overlay: '#64748b', walkable: true, label: 'Village Interior' },
+  d: { color: '#f59e0b', overlay: '#facc15', walkable: true, label: 'Doorway Threshold' },
+  C: { color: '#111827', overlay: '#0f172a', walkable: false, label: 'Obsidian Cavern Wall' },
+  c: { color: '#1f2937', overlay: '#111827', walkable: true, encounter: true, label: 'Obsidian Cavern Floor', encounterRate: 0.1 },
+  x: {
+    color: '#9a3412',
+    overlay: '#fb923c',
+    walkable: true,
+    heal: true,
+    label: 'Campfire Rest',
+  },
+  '^': { color: '#334155', overlay: '#475569', walkable: false, label: 'Shale Cliffs' },
+};
+
+const camera = {
+  x: 0,
+  y: 0,
+  width: canvas.width,
+  height: canvas.height,
 };
 
 const movementActions = {
@@ -226,15 +279,17 @@ const WILD_POOL = [
 const gameState = {
   mode: 'explore',
   messageTimer: null,
+  lastMessageTile: null,
   player: {
-    gridX: 2,
-    gridY: 12,
-    x: 2 * TILE_SIZE,
-    y: 12 * TILE_SIZE,
+    gridX: 32,
+    gridY: 24,
+    x: 32 * TILE_SIZE,
+    y: 24 * TILE_SIZE,
     moving: false,
     moveDir: { dx: 0, dy: 0 },
-    targetX: 2 * TILE_SIZE,
-    targetY: 12 * TILE_SIZE,
+    targetX: 32 * TILE_SIZE,
+    targetY: 24 * TILE_SIZE,
+    lastTileKey: null,
     party: [makeCreature(MONSTER_DEX[0], 3)],
   },
   battle: {
@@ -247,7 +302,7 @@ const gameState = {
 gameState.player.party[0].xp = 15;
 
 function tileAt(gridX, gridY) {
-  if (gridY < 0 || gridY >= WORLD_ROWS.length || gridX < 0 || gridX >= WORLD_ROWS[0].length) {
+  if (gridY < 0 || gridY >= WORLD_HEIGHT || gridX < 0 || gridX >= WORLD_WIDTH) {
     return '#';
   }
   return WORLD_ROWS[gridY][gridX];
@@ -257,6 +312,16 @@ function isWalkable(gridX, gridY) {
   const tile = tileDefinitions[tileAt(gridX, gridY)];
   if (!tile) return false;
   return tile.walkable;
+}
+
+function updateCamera() {
+  const player = gameState.player;
+  const centerX = player.x + TILE_SIZE / 2;
+  const centerY = player.y + TILE_SIZE / 2;
+  const maxX = Math.max(0, WORLD_PIXEL_WIDTH - camera.width);
+  const maxY = Math.max(0, WORLD_PIXEL_HEIGHT - camera.height);
+  camera.x = Math.max(0, Math.min(centerX - camera.width / 2, maxX));
+  camera.y = Math.max(0, Math.min(centerY - camera.height / 2, maxY));
 }
 
 function updateLocationLabel() {
@@ -298,7 +363,7 @@ function healParty() {
 function encounterChance(tileChar) {
   const tile = tileDefinitions[tileChar];
   if (tile?.encounter) {
-    return 0.18;
+    return tile.encounterRate ?? 0.18;
   }
   return 0;
 }
@@ -552,13 +617,23 @@ function tryEncounter(tileChar) {
   }
 }
 
-function handleTileEffects(tileChar) {
+function handleTileEffects(tileChar, isNewTile) {
   const tile = tileDefinitions[tileChar];
   if (!tile) return;
-  if (tile.heal) {
+  if (isNewTile && tile.heal) {
     healParty();
   }
-  tryEncounter(tileChar);
+  if (tile.message) {
+    if (isNewTile && gameState.lastMessageTile !== tileChar) {
+      showDialogue(tile.message, 2600);
+      gameState.lastMessageTile = tileChar;
+    }
+  } else if (isNewTile) {
+    gameState.lastMessageTile = null;
+  }
+  if (isNewTile) {
+    tryEncounter(tileChar);
+  }
 }
 
 function updatePlayer(delta) {
@@ -589,6 +664,7 @@ function updatePlayer(delta) {
     const dy = player.moveDir.dy * step;
     player.x += dx;
     player.y += dy;
+    updateCamera();
 
     const reachedX = (player.moveDir.dx >= 0 && player.x >= player.targetX) || (player.moveDir.dx <= 0 && player.x <= player.targetX);
     const reachedY = (player.moveDir.dy >= 0 && player.y >= player.targetY) || (player.moveDir.dy <= 0 && player.y <= player.targetY);
@@ -600,51 +676,268 @@ function updatePlayer(delta) {
       player.gridY = Math.round(player.targetY / TILE_SIZE);
       player.moving = false;
       const tileChar = tileAt(player.gridX, player.gridY);
+      const tileKey = `${player.gridX},${player.gridY}`;
+      const isNewTile = tileKey !== player.lastTileKey;
+      player.lastTileKey = tileKey;
       updateLocationLabel();
-      handleTileEffects(tileChar);
+      handleTileEffects(tileChar, isNewTile);
     }
+  } else {
+    updateCamera();
   }
 }
 
 function drawWorld() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let y = 0; y < WORLD_ROWS.length; y += 1) {
-    for (let x = 0; x < WORLD_ROWS[y].length; x += 1) {
-      const tileChar = WORLD_ROWS[y][x];
-      const tile = tileDefinitions[tileChar] ?? tileDefinitions['.'];
-      ctx.fillStyle = tile.color;
-      ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+  ctx.save();
+  ctx.translate(-camera.x, -camera.y);
 
-      if (tileChar === 'g') {
-        ctx.fillStyle = tile.overlay ?? '#22c55e';
-        ctx.fillRect(x * TILE_SIZE + 6, y * TILE_SIZE + 6, TILE_SIZE - 12, TILE_SIZE - 12);
-      }
-      if (tileChar === 'c') {
-        ctx.fillStyle = '#fb923c';
-        ctx.beginPath();
-        ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 3, 0, Math.PI * 2);
-        ctx.fill();
+  const startCol = Math.max(0, Math.floor(camera.x / TILE_SIZE) - 1);
+  const endCol = Math.min(WORLD_WIDTH - 1, Math.ceil((camera.x + camera.width) / TILE_SIZE) + 1);
+  const startRow = Math.max(0, Math.floor(camera.y / TILE_SIZE) - 1);
+  const endRow = Math.min(WORLD_HEIGHT - 1, Math.ceil((camera.y + camera.height) / TILE_SIZE) + 1);
+
+  for (let y = startRow; y <= endRow; y += 1) {
+    for (let x = startCol; x <= endCol; x += 1) {
+      const tileChar = WORLD_ROWS[y][x];
+      const tile = tileDefinitions[tileChar] ?? tileDefinitions.g;
+      const posX = x * TILE_SIZE;
+      const posY = y * TILE_SIZE;
+
+      ctx.fillStyle = tile.color;
+      ctx.fillRect(posX, posY, TILE_SIZE, TILE_SIZE);
+
+      switch (tileChar) {
+        case '#':
+        case 't': {
+          ctx.fillStyle = '#0f172a';
+          ctx.beginPath();
+          ctx.ellipse(posX + TILE_SIZE / 2, posY + TILE_SIZE / 2, TILE_SIZE / 2.4, TILE_SIZE / 2.4, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#14532d';
+          ctx.beginPath();
+          ctx.ellipse(posX + TILE_SIZE / 2, posY + TILE_SIZE / 2 - 4, TILE_SIZE / 2.8, TILE_SIZE / 2.8, 0, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        }
+        case 'g':
+        case 'h':
+        case 'w': {
+          const sway = Math.sin(animationTime / 350 + x * 0.6 + y * 0.3);
+          ctx.fillStyle = tile.overlay;
+          ctx.beginPath();
+          ctx.ellipse(
+            posX + TILE_SIZE / 2,
+            posY + TILE_SIZE / 2 + sway * (tileChar === 'h' ? 3 : 2),
+            TILE_SIZE / 2.6,
+            TILE_SIZE / 3,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+          if (tileChar === 'w') {
+            ctx.fillStyle = '#fef3c7';
+            ctx.beginPath();
+            ctx.arc(posX + TILE_SIZE / 2, posY + TILE_SIZE / 2, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          if (tileChar === 'h') {
+            ctx.fillStyle = 'rgba(74, 222, 128, 0.35)';
+            ctx.fillRect(posX + 6, posY + 6, TILE_SIZE - 12, TILE_SIZE - 12);
+          }
+          break;
+        }
+        case 'f': {
+          ctx.fillStyle = '#b45309';
+          for (let i = 2; i < TILE_SIZE; i += 6) {
+            ctx.fillRect(posX + i, posY, 2, TILE_SIZE);
+          }
+          break;
+        }
+        case 'p': {
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.55)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(posX + 2, posY + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+          ctx.beginPath();
+          ctx.moveTo(posX, posY + TILE_SIZE / 2);
+          ctx.lineTo(posX + TILE_SIZE, posY + TILE_SIZE / 2);
+          ctx.stroke();
+          break;
+        }
+        case 's': {
+          ctx.fillStyle = 'rgba(250, 240, 137, 0.45)';
+          for (let i = 0; i < 3; i += 1) {
+            const offsetX = (i * 7 + x * 13 + y * 17) % (TILE_SIZE - 8);
+            const offsetY = (i * 5 + x * 11 + y * 19) % (TILE_SIZE - 8);
+            ctx.beginPath();
+            ctx.arc(posX + 4 + offsetX, posY + 4 + offsetY, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          break;
+        }
+        case '~': {
+          const gradient = ctx.createLinearGradient(posX, posY, posX, posY + TILE_SIZE);
+          gradient.addColorStop(0, '#38bdf8');
+          gradient.addColorStop(1, '#0c4a6e');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(posX, posY, TILE_SIZE, TILE_SIZE);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.24)';
+          ctx.beginPath();
+          ctx.ellipse(
+            posX + TILE_SIZE / 2,
+            posY + TILE_SIZE / 2 + Math.sin(animationTime / 300 + x * 0.6) * 3,
+            TILE_SIZE / 2.5,
+            TILE_SIZE / 3.2,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+          break;
+        }
+        case 'r': {
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(posX, posY, TILE_SIZE, TILE_SIZE);
+          ctx.fillStyle = 'rgba(248, 250, 252, 0.7)';
+          ctx.fillRect(posX + 5, posY + 5, TILE_SIZE - 10, TILE_SIZE - 10);
+          break;
+        }
+        case 'B': {
+          ctx.fillStyle = '#111827';
+          ctx.fillRect(posX, posY, TILE_SIZE, TILE_SIZE);
+          ctx.fillStyle = '#e2e8f0';
+          ctx.beginPath();
+          ctx.moveTo(posX + TILE_SIZE / 2, posY + 4);
+          ctx.lineTo(posX + TILE_SIZE - 4, posY + TILE_SIZE - 4);
+          ctx.lineTo(posX + 4, posY + TILE_SIZE - 4);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
+        case 'b': {
+          ctx.fillStyle = '#64748b';
+          ctx.fillRect(posX + 2, posY + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(posX + 2, posY + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+          break;
+        }
+        case 'd': {
+          const gradient = ctx.createLinearGradient(posX, posY, posX, posY + TILE_SIZE);
+          gradient.addColorStop(0, '#facc15');
+          gradient.addColorStop(1, '#b45309');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(posX + 4, posY, TILE_SIZE - 8, TILE_SIZE);
+          break;
+        }
+        case 'C': {
+          ctx.fillStyle = '#0f172a';
+          ctx.beginPath();
+          ctx.moveTo(posX, posY);
+          ctx.lineTo(posX + TILE_SIZE, posY + TILE_SIZE);
+          ctx.lineTo(posX, posY + TILE_SIZE);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
+        case 'c': {
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(posX, posY, TILE_SIZE, TILE_SIZE);
+          ctx.fillStyle = '#1f2937';
+          ctx.fillRect(posX + 4, posY + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+          ctx.fillStyle = 'rgba(148, 163, 184, 0.3)';
+          ctx.beginPath();
+          ctx.arc(posX + TILE_SIZE / 2, posY + TILE_SIZE / 2, 3, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        }
+        case 'x': {
+          const flicker = Math.sin(animationTime / 120 + x + y) * 2;
+          ctx.fillStyle = '#b45309';
+          ctx.beginPath();
+          ctx.arc(posX + TILE_SIZE / 2, posY + TILE_SIZE / 2, TILE_SIZE / 3.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#fb923c';
+          ctx.beginPath();
+          ctx.moveTo(posX + TILE_SIZE / 2, posY + 6 - flicker);
+          ctx.lineTo(posX + TILE_SIZE / 2 + 5, posY + TILE_SIZE / 2 + 4);
+          ctx.lineTo(posX + TILE_SIZE / 2 - 5, posY + TILE_SIZE / 2 + 4);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
+        case '^': {
+          ctx.fillStyle = '#475569';
+          ctx.beginPath();
+          ctx.moveTo(posX + TILE_SIZE / 2, posY + 4);
+          ctx.lineTo(posX + TILE_SIZE - 4, posY + TILE_SIZE - 4);
+          ctx.lineTo(posX + 4, posY + TILE_SIZE - 4);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(226, 232, 240, 0.2)';
+          ctx.beginPath();
+          ctx.moveTo(posX + 6, posY + TILE_SIZE - 6);
+          ctx.lineTo(posX + TILE_SIZE - 6, posY + TILE_SIZE - 12);
+          ctx.stroke();
+          break;
+        }
+        default: {
+          if (tile.overlay) {
+            ctx.fillStyle = tile.overlay;
+            ctx.fillRect(posX + 6, posY + 6, TILE_SIZE - 12, TILE_SIZE - 12);
+          }
+        }
       }
     }
   }
+
+  ctx.restore();
 }
 
 function drawPlayer() {
   const player = gameState.player;
   ctx.save();
-  ctx.translate(player.x + TILE_SIZE / 2, player.y + TILE_SIZE / 2);
+  ctx.translate(player.x - camera.x + TILE_SIZE / 2, player.y - camera.y + TILE_SIZE / 2);
+  const bob = Math.sin(animationTime / 220) * 2;
+  ctx.translate(0, -bob);
+
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
+  ctx.beginPath();
+  ctx.ellipse(0, TILE_SIZE / 2.4, TILE_SIZE / 2.4, TILE_SIZE / 3.1, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#1d4ed8';
+  ctx.beginPath();
+  ctx.ellipse(0, TILE_SIZE / 8, TILE_SIZE / 3.1, TILE_SIZE / 2.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#f97316';
+  ctx.fillRect(-TILE_SIZE / 3.5, -TILE_SIZE / 5, TILE_SIZE / 7, TILE_SIZE / 2.2);
+
   ctx.fillStyle = '#facc15';
   ctx.beginPath();
-  ctx.arc(0, 0, TILE_SIZE / 2.6, 0, Math.PI * 2);
+  ctx.arc(0, -TILE_SIZE / 3.2, TILE_SIZE / 3.4, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = '#be123c';
+
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(-TILE_SIZE / 3, -TILE_SIZE / 2.2, TILE_SIZE / 1.5, TILE_SIZE / 10);
+  ctx.fillStyle = '#22d3ee';
+  ctx.fillRect(-TILE_SIZE / 4, -TILE_SIZE / 2.4, TILE_SIZE / 2, TILE_SIZE / 12);
+
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(-5, -2, 4, 0, Math.PI * 2);
-  ctx.arc(5, -2, 4, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(-TILE_SIZE / 4, TILE_SIZE / 6);
+  ctx.lineTo(-TILE_SIZE / 2.5, TILE_SIZE / 3);
+  ctx.moveTo(TILE_SIZE / 4, TILE_SIZE / 6);
+  ctx.lineTo(TILE_SIZE / 2.5, TILE_SIZE / 3);
+  ctx.stroke();
   ctx.restore();
 }
 
+let animationTime = 0;
 let lastTimestamp = 0;
 function loop(timestamp) {
   if (!lastTimestamp) {
@@ -652,6 +945,7 @@ function loop(timestamp) {
   }
   const delta = (timestamp - lastTimestamp) / 1000;
   lastTimestamp = timestamp;
+  animationTime = timestamp;
 
   updatePlayer(delta);
   drawWorld();
@@ -661,9 +955,11 @@ function loop(timestamp) {
 }
 
 function initialize() {
+  gameState.player.lastTileKey = `${gameState.player.gridX},${gameState.player.gridY}`;
   updateLocationLabel();
   updatePartyLabel();
-  showDialogue('Welcome to Poke Adventure! Explore the tall grass for wild encounters.');
+  updateCamera();
+  showDialogue('Welcome to Poke Adventure! Follow the stone road, cross the Silverstream, and discover hidden caverns.');
   requestAnimationFrame(loop);
 }
 
