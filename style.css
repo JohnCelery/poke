@@ -101,6 +101,8 @@ canvas {
   border-radius: 0.75rem;
   font-size: 0.95rem;
   line-height: 1.4;
+  max-height: min(14rem, 35vh);
+  overflow-y: auto;
 }
 
 .instructions {
