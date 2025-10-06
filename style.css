@@ -138,16 +138,17 @@ footer {
 }
 
 .battle {
-  position: absolute;
-  inset: 0;
+  position: relative;
   display: grid;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(15, 23, 42, 0.92);
   color: #f8fafc;
   border-radius: 0.75rem;
-  padding: 1.5rem;
-  grid-template-rows: auto auto 1fr;
+  padding: 1.25rem;
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 1rem;
   place-items: stretch;
+  box-shadow: 0 20px 35px rgba(15, 23, 42, 0.25);
+  max-height: min(28rem, 60vh);
 }
 
 .battle__panels {
@@ -213,6 +214,8 @@ footer {
   padding: 1rem;
   font-size: 0.95rem;
   overflow-y: auto;
+  max-height: clamp(8rem, 35vh, 13rem);
+  min-height: 0;
 }
 
 @media (max-width: 900px) {
