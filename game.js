@@ -2,6 +2,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 const dialogueBox = document.getElementById('dialogue');
+const DIALOGUE_MODE_CLASS = 'dialogue--active';
 const locationLabel = document.getElementById('locationLabel');
 const partyLabel = document.getElementById('partyLabel');
 const battleUI = document.getElementById('battleUI');
@@ -194,6 +195,25 @@ window.addEventListener('keyup', (event) => {
   }
 });
 
+const confirmKeys = new Set(['Enter', ' ', 'Space', 'Spacebar']);
+
+window.addEventListener('keydown', (event) => {
+  if (confirmKeys.has(event.key)) {
+    if (gameState.mode === 'dialogue') {
+      advanceDialogue(true);
+    } else if (gameState.mode === 'explore') {
+      tryInteractWithNpc();
+    }
+    event.preventDefault();
+  } else if (gameState.mode === 'dialogue') {
+    const numeric = parseInt(event.key, 10);
+    if (!Number.isNaN(numeric) && numeric >= 1) {
+      selectDialogueChoice(numeric - 1);
+      event.preventDefault();
+    }
+  }
+});
+
 function nextDirection() {
   for (let i = directionQueue.length - 1; i >= 0; i -= 1) {
     const action = directionQueue[i];
@@ -357,6 +377,12 @@ const gameState = {
     enemy: null,
     locked: false,
   },
+  dialogue: {
+    activeNpc: null,
+    nodeId: null,
+    pendingEffects: [],
+    claimedRewards: new Set(),
+  },
   npcs: [
     {
       id: 'river_scholar',
@@ -366,6 +392,36 @@ const gameState = {
       facing: 'right',
       palette: { cloak: '#0f172a', trim: '#38bdf8', accent: '#f1f5f9' },
       idleSeed: 0.42,
+      dialogue: {
+        start: 'greeting',
+        nodes: {
+          greeting: {
+            text: 'The Silverstream runs swift tonight. Its song changes with the moon—have you noticed?',
+            choices: [
+              { text: 'Ask about the river\'s secrets', next: 'secrets' },
+              { text: 'Compliment their studies', next: 'compliment' },
+              { text: 'Take your leave', next: null },
+            ],
+          },
+          secrets: {
+            text: 'Beneath the glimmer lies a current that only kindred spirits feel. Listen close near the old bridge.',
+            next: 'closing',
+            reward: {
+              type: 'trigger',
+              description: 'A lead for the hidden bridge resonance quest.',
+              repeatable: false,
+            },
+          },
+          compliment: {
+            text: 'Knowledge flows best when shared. Should you uncover river stones, bring one and we\'ll learn together.',
+            next: 'closing',
+          },
+          closing: {
+            text: 'May the river guide your steps. Return when its melody changes.',
+            choices: [{ text: 'Nod appreciatively', next: null }],
+          },
+        },
+      },
     },
     {
       id: 'market_guard',
@@ -375,6 +431,33 @@ const gameState = {
       facing: 'down',
       palette: { cloak: '#1e293b', trim: '#f97316', accent: '#facc15' },
       idleSeed: 0.18,
+      dialogue: {
+        start: 'post',
+        nodes: {
+          post: {
+            text: 'Hey there! The bazaar is busier than ever. Anything you\'re looking for?',
+            choices: [
+              { text: 'Ask for travel tips', next: 'tips' },
+              { text: 'Offer to help keep watch', next: 'watch' },
+              { text: 'Say goodbye', next: null },
+            ],
+          },
+          tips: {
+            text: 'Merchants whisper of rare blooms in the north caverns. Stock up on tonics before heading out.',
+            next: 'post',
+          },
+          watch: {
+            text: 'Appreciated! Take this guard ration—keeps you going on long patrols.',
+            choices: [
+              {
+                text: 'Accept the ration',
+                next: 'post',
+                reward: { type: 'item', description: 'Guard Ration', repeatable: false },
+              },
+            ],
+          },
+        },
+      },
     },
     {
       id: 'cavern_scout',
@@ -384,6 +467,28 @@ const gameState = {
       facing: 'left',
       palette: { cloak: '#0f172a', trim: '#64748b', accent: '#94a3b8' },
       idleSeed: 0.67,
+      dialogue: {
+        start: 'camp',
+        nodes: {
+          camp: {
+            text: 'Darkness breathes in the caverns. I map new tunnels each night.',
+            choices: [
+              { text: 'Request a map fragment', next: 'fragment' },
+              { text: 'Share your own findings', next: 'share' },
+              { text: 'Wish them luck', next: null },
+            ],
+          },
+          fragment: {
+            text: 'Here. This sketch marks a cavern bloom rumored to awaken stonefolk.',
+            next: null,
+            reward: { type: 'item', description: 'Cavern Map Fragment', repeatable: false },
+          },
+          share: {
+            text: 'Interesting... our paths cross beneath the ridge then. I will adjust tomorrow\'s survey.',
+            next: 'camp',
+          },
+        },
+      },
     },
     {
       id: 'campfire_minstrel',
@@ -393,6 +498,29 @@ const gameState = {
       facing: 'up',
       palette: { cloak: '#b45309', trim: '#fde68a', accent: '#f8fafc' },
       idleSeed: 0.91,
+      dialogue: {
+        start: 'greeting',
+        nodes: {
+          greeting: {
+            text: 'Care for a tune? These strings know tales of heroes and hearths.',
+            choices: [
+              { text: 'Listen to a soothing ballad', next: 'ballad' },
+              { text: 'Request an energetic melody', next: 'melody' },
+              { text: 'Decline politely', next: null },
+            ],
+          },
+          ballad: {
+            text: 'The song wraps around you like warm embers. Your companions breathe easier.',
+            next: null,
+            reward: { type: 'heal', repeatable: true },
+          },
+          melody: {
+            text: 'The chords spark with energy! Your lead partner feels ready for any challenge.',
+            next: null,
+            reward: { type: 'xp', amount: 18, repeatable: false },
+          },
+        },
+      },
     },
   ],
 };
@@ -408,6 +536,276 @@ function buildNpcSpatialIndex() {
     }
     npcByTile.get(key).push(npc);
   });
+}
+
+function nearbyNpc() {
+  const { gridX, gridY } = gameState.player;
+  const offsets = [
+    { dx: 0, dy: 0 },
+    { dx: 1, dy: 0 },
+    { dx: -1, dy: 0 },
+    { dx: 0, dy: 1 },
+    { dx: 0, dy: -1 },
+  ];
+  for (const { dx, dy } of offsets) {
+    const key = `${gridX + dx},${gridY + dy}`;
+    const candidates = npcByTile.get(key);
+    if (candidates?.length) {
+      return candidates[0];
+    }
+  }
+  return null;
+}
+
+function resetDialogueEffects() {
+  gameState.dialogue.pendingEffects = [];
+}
+
+function queueDialogueEffect(effect) {
+  if (!effect) return;
+  const { activeNpc, claimedRewards, pendingEffects } = gameState.dialogue;
+  if (!activeNpc) return;
+  const keyParts = [activeNpc.id];
+  if (effect.type === 'reward') {
+    const reward = effect.reward;
+    if (!reward) return;
+    const identifier = `${reward.type ?? 'unknown'}:${reward.description ?? ''}:${reward.amount ?? ''}`;
+    keyParts.push(identifier);
+    if (!reward.repeatable && claimedRewards.has(keyParts.join('|'))) {
+      return;
+    }
+    if (!reward.repeatable) {
+      claimedRewards.add(keyParts.join('|'));
+    }
+  }
+  pendingEffects.push(effect);
+}
+
+function applyPendingDialogueEffects() {
+  const { pendingEffects } = gameState.dialogue;
+  if (!pendingEffects.length) {
+    return;
+  }
+
+  const messages = [];
+  pendingEffects.forEach((effect) => {
+    if (effect.type === 'reward') {
+      const reward = effect.reward ?? {};
+      switch (reward.type) {
+        case 'item':
+          messages.push(`Received ${reward.description ?? 'an item'}!`);
+          break;
+        case 'xp': {
+          const amount = reward.amount ?? 0;
+          if (amount > 0) {
+            const lead = gameState.player.party[0];
+            if (lead) {
+              lead.xp += amount;
+              messages.push(`${lead.name} gained ${amount} experience.`);
+              let leveled = false;
+              while (lead.xp >= xpForNextLevel(lead.level)) {
+                lead.xp -= xpForNextLevel(lead.level);
+                lead.level += 1;
+                lead.maxHp += 6;
+                lead.attack += 2;
+                lead.specialPower += 2.5;
+                lead.defense += 1.5;
+                lead.speed += 0.8;
+                lead.maxEnergy += 2;
+                lead.hp = lead.maxHp;
+                lead.energy = lead.maxEnergy;
+                leveled = true;
+              }
+              if (leveled) {
+                messages.push(`${lead.name} grew to level ${lead.level}!`);
+              }
+              updatePartyLabel();
+            }
+          }
+          break;
+        }
+        case 'heal': {
+          gameState.player.party.forEach((mon) => {
+            mon.hp = mon.maxHp;
+            mon.energy = mon.maxEnergy;
+          });
+          updatePartyLabel();
+          messages.push('Your party feels revitalized.');
+          break;
+        }
+        case 'trigger':
+          messages.push(reward.description ?? 'A new lead has been noted.');
+          break;
+        default:
+          if (reward.description) {
+            messages.push(reward.description);
+          }
+          break;
+      }
+      if (reward.type !== 'heal') {
+        // For heal we already called healParty which shows a message, avoid duplicates.
+      }
+    } else if (effect.type === 'trigger') {
+      messages.push(effect.description ?? 'A new opportunity arises.');
+    }
+  });
+
+  if (messages.length) {
+    const combinedMessage = messages.join(' ');
+    const duration = Math.min(6000, 2200 + combinedMessage.length * 20);
+    showMessage(combinedMessage, duration);
+  }
+  resetDialogueEffects();
+}
+
+function endDialogue() {
+  gameState.mode = 'explore';
+  dialogueBox.classList.remove(DIALOGUE_MODE_CLASS);
+  dialogueBox.innerHTML = '';
+  applyPendingDialogueEffects();
+  gameState.dialogue.activeNpc = null;
+  gameState.dialogue.nodeId = null;
+}
+
+function renderDialogueNode() {
+  const { activeNpc, nodeId } = gameState.dialogue;
+  if (!activeNpc) {
+    endDialogue();
+    return;
+  }
+  const node = activeNpc.dialogue?.nodes?.[nodeId];
+  if (!node) {
+    endDialogue();
+    return;
+  }
+
+  dialogueBox.classList.add(DIALOGUE_MODE_CLASS);
+  dialogueBox.innerHTML = '';
+
+  const speaker = document.createElement('h2');
+  speaker.className = 'dialogue__speaker';
+  speaker.textContent = activeNpc.name;
+  dialogueBox.appendChild(speaker);
+
+  const text = document.createElement('p');
+  text.className = 'dialogue__text';
+  text.textContent = node.text;
+  dialogueBox.appendChild(text);
+
+  if (node.reward) {
+    queueDialogueEffect({ type: 'reward', reward: node.reward });
+  }
+
+  const choices = node.choices ?? [];
+  if (choices.length) {
+    const choicesContainer = document.createElement('div');
+    choicesContainer.className = 'dialogue__choices';
+    choices.forEach((choice, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'dialogue__choice';
+      button.dataset.choiceIndex = index.toString();
+      button.textContent = `${index + 1}. ${choice.text}`;
+      button.addEventListener('click', () => {
+        selectDialogueChoice(index);
+      });
+      choicesContainer.appendChild(button);
+    });
+    const prompt = document.createElement('p');
+    prompt.className = 'dialogue__prompt';
+    prompt.textContent = 'Press the matching number or Enter to choose the first option.';
+    dialogueBox.appendChild(choicesContainer);
+    dialogueBox.appendChild(prompt);
+  } else {
+    const prompt = document.createElement('p');
+    prompt.className = 'dialogue__prompt';
+    prompt.textContent = node.next ? 'Press Enter to continue.' : 'Press Enter to conclude the conversation.';
+    dialogueBox.appendChild(prompt);
+  }
+}
+
+function advanceDialogue(defaultToFirstChoice = true) {
+  const { activeNpc, nodeId } = gameState.dialogue;
+  if (!activeNpc) {
+    return;
+  }
+  const node = activeNpc.dialogue?.nodes?.[nodeId];
+  if (!node) {
+    endDialogue();
+    return;
+  }
+
+  if (node.choices?.length) {
+    if (defaultToFirstChoice) {
+      selectDialogueChoice(0);
+    }
+    return;
+  }
+
+  if (node.next) {
+    gameState.dialogue.nodeId = node.next;
+    renderDialogueNode();
+  } else {
+    endDialogue();
+  }
+}
+
+function selectDialogueChoice(index) {
+  const { activeNpc, nodeId } = gameState.dialogue;
+  if (!activeNpc) {
+    return;
+  }
+  const node = activeNpc.dialogue?.nodes?.[nodeId];
+  if (!node?.choices?.length) {
+    return;
+  }
+  const choice = node.choices[index];
+  if (!choice) {
+    return;
+  }
+  if (choice.reward) {
+    queueDialogueEffect({ type: 'reward', reward: choice.reward });
+  }
+  if (choice.next) {
+    gameState.dialogue.nodeId = choice.next;
+    renderDialogueNode();
+  } else {
+    endDialogue();
+  }
+}
+
+function startDialogue(npc) {
+  if (!npc?.dialogue?.nodes) {
+    showMessage(`${npc?.name ?? 'The figure'} has nothing to discuss right now.`, 2200);
+    return;
+  }
+  if (gameState.messageTimer) {
+    clearTimeout(gameState.messageTimer);
+    gameState.messageTimer = null;
+  }
+  resetDialogueEffects();
+  gameState.mode = 'dialogue';
+  gameState.dialogue.activeNpc = npc;
+  const startNode = npc.dialogue.start ?? Object.keys(npc.dialogue.nodes)[0];
+  if (!startNode || !npc.dialogue.nodes[startNode]) {
+    gameState.mode = 'explore';
+    showMessage(`${npc.name} pauses, unsure what to share.`, 2000);
+    return;
+  }
+  gameState.dialogue.nodeId = startNode;
+  renderDialogueNode();
+}
+
+function tryInteractWithNpc() {
+  if (gameState.mode !== 'explore') {
+    return;
+  }
+  const npc = nearbyNpc();
+  if (npc) {
+    startDialogue(npc);
+  } else {
+    showMessage('There is no one nearby to speak with.', 1600);
+  }
 }
 
 gameState.player.party[0].xp = 15;
@@ -448,10 +846,14 @@ function updatePartyLabel() {
   partyLabel.textContent = members;
 }
 
-function showDialogue(message, duration = 2200) {
+function showMessage(message, duration = 2200) {
   if (gameState.messageTimer) {
     clearTimeout(gameState.messageTimer);
   }
+  if (gameState.mode === 'dialogue') {
+    return;
+  }
+  dialogueBox.classList.remove(DIALOGUE_MODE_CLASS);
   dialogueBox.textContent = message;
   if (duration > 0) {
     gameState.messageTimer = setTimeout(() => {
@@ -468,7 +870,7 @@ function healParty() {
     mon.energy = mon.maxEnergy;
   });
   updatePartyLabel();
-  showDialogue('Your party feels refreshed after resting by the campfire!', 2800);
+  showMessage('Your party feels refreshed after resting by the campfire!', 2800);
 }
 
 function encounterChance(tileChar) {
@@ -498,7 +900,7 @@ function startBattle(enemy) {
     btn.disabled = false;
   });
   logBattle(`A wild ${enemy.name} appeared!`);
-  showDialogue('Battle start! Choose an action.', 1500);
+  showMessage('Battle start! Choose an action.', 1500);
   updateBattleUI();
 }
 
@@ -511,7 +913,7 @@ function endBattle(message) {
     btn.disabled = false;
   });
   if (message) {
-    showDialogue(message, 2600);
+    showMessage(message, 2600);
   }
   updatePartyLabel();
   updateLocationLabel();
@@ -736,7 +1138,7 @@ function handleTileEffects(tileChar, isNewTile) {
   }
   if (tile.message) {
     if (isNewTile && gameState.lastMessageTile !== tileChar) {
-      showDialogue(tile.message, 2600);
+      showMessage(tile.message, 2600);
       gameState.lastMessageTile = tileChar;
     }
   } else if (isNewTile) {
@@ -764,7 +1166,7 @@ function updatePlayer(delta) {
         player.targetX = targetGridX * TILE_SIZE;
         player.targetY = targetGridY * TILE_SIZE;
       } else {
-        showDialogue('Dense trees block your path.');
+        showMessage('Dense trees block your path.');
       }
     }
   }
@@ -1470,7 +1872,7 @@ function initialize() {
   updateLocationLabel();
   updatePartyLabel();
   updateCamera();
-  showDialogue('Welcome to Poke Adventure! Follow the stone road, cross the Silverstream, and discover hidden caverns.');
+  showMessage('Welcome to Poke Adventure! Follow the stone road, cross the Silverstream, and discover hidden caverns.');
   requestAnimationFrame(loop);
 }
 
