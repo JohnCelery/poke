@@ -357,7 +357,58 @@ const gameState = {
     enemy: null,
     locked: false,
   },
+  npcs: [
+    {
+      id: 'river_scholar',
+      name: 'River Scholar',
+      gridX: 43,
+      gridY: 6,
+      facing: 'right',
+      palette: { cloak: '#0f172a', trim: '#38bdf8', accent: '#f1f5f9' },
+      idleSeed: 0.42,
+    },
+    {
+      id: 'market_guard',
+      name: 'Market Guard',
+      gridX: 34,
+      gridY: 24,
+      facing: 'down',
+      palette: { cloak: '#1e293b', trim: '#f97316', accent: '#facc15' },
+      idleSeed: 0.18,
+    },
+    {
+      id: 'cavern_scout',
+      name: 'Cavern Scout',
+      gridX: 18,
+      gridY: 30,
+      facing: 'left',
+      palette: { cloak: '#0f172a', trim: '#64748b', accent: '#94a3b8' },
+      idleSeed: 0.67,
+    },
+    {
+      id: 'campfire_minstrel',
+      name: 'Campfire Minstrel',
+      gridX: 22,
+      gridY: 22,
+      facing: 'up',
+      palette: { cloak: '#b45309', trim: '#fde68a', accent: '#f8fafc' },
+      idleSeed: 0.91,
+    },
+  ],
 };
+
+const npcByTile = new Map();
+
+function buildNpcSpatialIndex() {
+  npcByTile.clear();
+  gameState.npcs.forEach((npc) => {
+    const key = `${npc.gridX},${npc.gridY}`;
+    if (!npcByTile.has(key)) {
+      npcByTile.set(key, []);
+    }
+    npcByTile.get(key).push(npc);
+  });
+}
 
 gameState.player.party[0].xp = 15;
 
@@ -1057,6 +1108,83 @@ function drawWorld() {
   ctx.restore();
 }
 
+function drawNPCs() {
+  gameState.npcs.forEach((npc) => {
+    const screenX = npc.gridX * TILE_SIZE - camera.x;
+    const screenY = npc.gridY * TILE_SIZE - camera.y;
+    if (
+      screenX + TILE_SIZE < -TILE_SIZE ||
+      screenX > canvas.width + TILE_SIZE ||
+      screenY + TILE_SIZE < -TILE_SIZE ||
+      screenY > canvas.height + TILE_SIZE
+    ) {
+      return;
+    }
+
+    ctx.save();
+    ctx.translate(screenX + TILE_SIZE / 2, screenY + TILE_SIZE / 2);
+    const idleSeed = npc.idleSeed ?? 0;
+    const bob = Math.sin(animationTime / (240 + idleSeed * 120) + idleSeed * Math.PI * 2) * 2.2;
+    ctx.translate(0, -bob);
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
+    ctx.beginPath();
+    ctx.ellipse(0, TILE_SIZE / 2.4, TILE_SIZE / 2.4, TILE_SIZE / 3.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const palette = npc.palette ?? {};
+    const cloakColor = palette.cloak ?? '#334155';
+    const trimColor = palette.trim ?? adjustColor(cloakColor, 26);
+    const accentColor = palette.accent ?? '#f8fafc';
+    const facing = npc.facing ?? 'down';
+
+    if (facing === 'left') {
+      ctx.scale(-1, 1);
+    }
+
+    const cloakGradient = ctx.createLinearGradient(0, -TILE_SIZE / 2, 0, TILE_SIZE / 2);
+    cloakGradient.addColorStop(0, adjustColor(cloakColor, 18));
+    cloakGradient.addColorStop(1, adjustColor(cloakColor, -18));
+    ctx.fillStyle = cloakGradient;
+    ctx.beginPath();
+    ctx.moveTo(-TILE_SIZE / 3.5, -TILE_SIZE / 8);
+    ctx.bezierCurveTo(-TILE_SIZE / 3.7, TILE_SIZE / 2.4, TILE_SIZE / 3.7, TILE_SIZE / 2.4, TILE_SIZE / 3.5, -TILE_SIZE / 8);
+    ctx.quadraticCurveTo(0, TILE_SIZE / 3.2, -TILE_SIZE / 3.5, -TILE_SIZE / 8);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = trimColor;
+    ctx.beginPath();
+    ctx.moveTo(-TILE_SIZE / 4.2, TILE_SIZE / 12);
+    ctx.lineTo(TILE_SIZE / 4.2, TILE_SIZE / 12);
+    ctx.quadraticCurveTo(0, TILE_SIZE / 3.6, -TILE_SIZE / 4.2, TILE_SIZE / 12);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    if (facing === 'up') {
+      ctx.moveTo(-TILE_SIZE / 5, -TILE_SIZE / 6);
+      ctx.lineTo(0, -TILE_SIZE / 3);
+      ctx.lineTo(TILE_SIZE / 5, -TILE_SIZE / 6);
+    } else {
+      ctx.moveTo(-TILE_SIZE / 5, TILE_SIZE / 9);
+      ctx.lineTo(-TILE_SIZE / 3.4, TILE_SIZE / 3.3);
+      ctx.moveTo(TILE_SIZE / 5, TILE_SIZE / 9);
+      ctx.lineTo(TILE_SIZE / 3.4, TILE_SIZE / 3.3);
+    }
+    ctx.stroke();
+
+    if (facing === 'right') {
+      ctx.fillStyle = adjustColor(trimColor, 18);
+      ctx.fillRect(TILE_SIZE / 4.5, -TILE_SIZE / 6, 3, TILE_SIZE / 2.6);
+    }
+
+    ctx.restore();
+  });
+}
+
 function drawPlayer() {
   const player = gameState.player;
   ctx.save();
@@ -1329,6 +1457,7 @@ function loop(timestamp) {
   } else {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawWorld();
+    drawNPCs();
     drawPlayer();
   }
 
@@ -1336,6 +1465,7 @@ function loop(timestamp) {
 }
 
 function initialize() {
+  buildNpcSpatialIndex();
   gameState.player.lastTileKey = `${gameState.player.gridX},${gameState.player.gridY}`;
   updateLocationLabel();
   updatePartyLabel();
