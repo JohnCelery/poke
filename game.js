@@ -87,6 +87,287 @@ const tileDefinitions = {
   '^': { color: '#334155', overlay: '#475569', walkable: false, label: 'Shale Cliffs' },
 };
 
+const NPC_LIBRARY = {
+  river_scholar: {
+    id: 'river_scholar',
+    name: 'River Scholar',
+    facing: 'right',
+    palette: { cloak: '#0f172a', trim: '#38bdf8', accent: '#f1f5f9' },
+    idleSeed: 0.42,
+    dialogue: {
+      start: 'greeting',
+      nodes: {
+        greeting: {
+          text: 'The Silverstream runs swift tonight. Its song changes with the moon—have you noticed?',
+          choices: [
+            { text: "Ask about the river's secrets", next: 'secrets' },
+            { text: 'Compliment their studies', next: 'compliment' },
+            { text: 'Take your leave', next: null },
+          ],
+        },
+        secrets: {
+          text: 'Beneath the glimmer lies a current that only kindred spirits feel. Listen close near the old bridge.',
+          next: 'closing',
+          reward: {
+            type: 'trigger',
+            description: 'A lead for the hidden bridge resonance quest.',
+            repeatable: false,
+          },
+        },
+        compliment: {
+          text: "Knowledge flows best when shared. Should you uncover river stones, bring one and we'll learn together.",
+          next: 'closing',
+        },
+        closing: {
+          text: 'May the river guide your steps. Return when its melody changes.',
+          choices: [{ text: 'Nod appreciatively', next: null }],
+        },
+      },
+    },
+  },
+  market_guard: {
+    id: 'market_guard',
+    name: 'Market Guard',
+    facing: 'down',
+    palette: { cloak: '#1e293b', trim: '#f97316', accent: '#facc15' },
+    idleSeed: 0.18,
+    dialogue: {
+      start: 'post',
+      nodes: {
+        post: {
+          text: "Hey there! The bazaar is busier than ever. Anything you're looking for?",
+          choices: [
+            { text: 'Ask for travel tips', next: 'tips' },
+            { text: 'Offer to help keep watch', next: 'watch' },
+            { text: 'Say goodbye', next: null },
+          ],
+        },
+        tips: {
+          text: 'Merchants whisper of rare blooms in the north caverns. Stock up on tonics before heading out.',
+          next: 'post',
+        },
+        watch: {
+          text: 'Appreciated! Take this guard ration—keeps you going on long patrols.',
+          choices: [
+            {
+              text: 'Accept the ration',
+              next: 'post',
+              reward: { type: 'item', description: 'Guard Ration', repeatable: false },
+            },
+          ],
+        },
+      },
+    },
+  },
+  cavern_scout: {
+    id: 'cavern_scout',
+    name: 'Cavern Scout',
+    facing: 'left',
+    palette: { cloak: '#0f172a', trim: '#64748b', accent: '#94a3b8' },
+    idleSeed: 0.67,
+    dialogue: {
+      start: 'camp',
+      nodes: {
+        camp: {
+          text: 'Darkness breathes in the caverns. I map new tunnels each night.',
+          choices: [
+            { text: 'Request a map fragment', next: 'fragment' },
+            { text: 'Share your own findings', next: 'share' },
+            { text: 'Wish them luck', next: null },
+          ],
+        },
+        fragment: {
+          text: 'Here. This sketch marks a cavern bloom rumored to awaken stonefolk.',
+          next: null,
+          reward: { type: 'item', description: 'Cavern Map Fragment', repeatable: false },
+        },
+        share: {
+          text: "Interesting... our paths cross beneath the ridge then. I will adjust tomorrow's survey.",
+          next: 'camp',
+        },
+      },
+    },
+  },
+  campfire_minstrel: {
+    id: 'campfire_minstrel',
+    name: 'Campfire Minstrel',
+    facing: 'up',
+    palette: { cloak: '#b45309', trim: '#fde68a', accent: '#f8fafc' },
+    idleSeed: 0.91,
+    dialogue: {
+      start: 'greeting',
+      nodes: {
+        greeting: {
+          text: 'Care for a tune? These strings know tales of heroes and hearths.',
+          choices: [
+            { text: 'Listen to a soothing ballad', next: 'ballad' },
+            { text: 'Request an energetic melody', next: 'melody' },
+            { text: 'Decline politely', next: null },
+          ],
+        },
+        ballad: {
+          text: 'The song wraps around you like warm embers. Your companions breathe easier.',
+          next: null,
+          reward: { type: 'heal', repeatable: true },
+        },
+        melody: {
+          text: 'The chords spark with energy! Your lead partner feels ready for any challenge.',
+          next: null,
+          reward: { type: 'xp', amount: 18, repeatable: false },
+        },
+      },
+    },
+  },
+};
+
+const areas = [
+  {
+    id: 'campfire_retreat',
+    displayName: 'Campfire Retreat',
+    bounds: {
+      type: 'tiles',
+      tiles: [
+        { x: 9, y: 21 },
+        { x: 10, y: 21 },
+        { x: 11, y: 21 },
+        { x: 9, y: 22 },
+        { x: 10, y: 22 },
+        { x: 11, y: 22 },
+        { x: 12, y: 22 },
+        { x: 10, y: 23 },
+        { x: 11, y: 23 },
+        { x: 12, y: 23 },
+      ],
+    },
+    encounters: { rateMultiplier: 0.5 },
+    npcSpawns: [{ id: 'campfire_minstrel', gridX: 10, gridY: 22, facing: 'right' }],
+    firstEnterEvent() {
+      if (gameState.flags.campfireGreetingHeard) {
+        return false;
+      }
+      gameState.flags.campfireGreetingHeard = true;
+      setTimeout(() => {
+        showMessage('The campfire minstrel beckons you closer with a warm chord.', 2600);
+      }, 1200);
+      return true;
+    },
+  },
+  {
+    id: 'silverstream_crossing',
+    displayName: 'Silverstream Crossing',
+    bounds: {
+      type: 'polygon',
+      points: [
+        { x: 5, y: 4 },
+        { x: 54, y: 4 },
+        { x: 56, y: 9 },
+        { x: 5, y: 9 },
+      ],
+    },
+    welcomeMessage: 'Mist from the Silverstream cools the air as you near the crossing.',
+    encounters: { rateMultiplier: 1.2 },
+    npcSpawns: [{ id: 'river_scholar', gridX: 43, gridY: 6, facing: 'right' }],
+    firstEnterEvent() {
+      if (!gameState.flags.heardSilverstreamWhisper) {
+        gameState.flags.heardSilverstreamWhisper = true;
+      }
+      return false;
+    },
+  },
+  {
+    id: 'sunspire_market',
+    displayName: 'Sunspire Market',
+    bounds: { type: 'rect', x: 16, y: 24, width: 27, height: 5 },
+    welcomeMessage: 'Merchants call out friendly offers as you enter Sunspire Market.',
+    encounters: { rateOverride: 0.02 },
+    npcSpawns: [{ id: 'market_guard', gridX: 33, gridY: 24, facing: 'down' }],
+  },
+  {
+    id: 'obsidian_caverns',
+    displayName: 'Obsidian Caverns',
+    bounds: { type: 'rect', x: 3, y: 28, width: 10, height: 6 },
+    welcomeMessage: 'The air chills as you descend into the Obsidian Caverns.',
+    encounters: { rateMultiplier: 1.8 },
+    npcSpawns: [{ id: 'cavern_scout', gridX: 10, gridY: 30, facing: 'left' }],
+    firstEnterEvent() {
+      if (gameState.flags.cavernSurveyStarted) {
+        return false;
+      }
+      gameState.flags.cavernSurveyStarted = true;
+      return false;
+    },
+  },
+  {
+    id: 'golden_farmlands',
+    displayName: 'Golden Farmlands',
+    bounds: { type: 'rect', x: 4, y: 10, width: 8, height: 7 },
+    welcomeMessage: 'Golden stalks sway in the breeze across the terraced farmlands.',
+    encounters: { rateMultiplier: 0.6 },
+  },
+  {
+    id: 'traveler_causeway',
+    displayName: "Traveler's Causeway",
+    bounds: { type: 'rect', x: 0, y: 20, width: WORLD_WIDTH, height: 3 },
+    welcomeMessage: 'The stone road hums with the memory of countless journeys.',
+    encounters: { rateMultiplier: 0.5 },
+  },
+];
+
+function areaContains(area, gridX, gridY) {
+  if (!area?.bounds) {
+    return false;
+  }
+  const bounds = area.bounds;
+  if (bounds.type === 'rect') {
+    const { x = 0, y = 0, width = 0, height = 0 } = bounds;
+    return gridX >= x && gridX < x + width && gridY >= y && gridY < y + height;
+  }
+  if (bounds.type === 'tiles') {
+    if (!area._tileSet) {
+      const tiles = bounds.tiles ?? [];
+      area._tileSet = new Set(
+        tiles.map((tile) => {
+          if (Array.isArray(tile)) {
+            return `${tile[0]},${tile[1]}`;
+          }
+          return `${tile.x},${tile.y}`;
+        }),
+      );
+    }
+    return area._tileSet.has(`${gridX},${gridY}`);
+  }
+  if (bounds.type === 'polygon') {
+    const points = bounds.points ?? [];
+    if (points.length < 3) {
+      return false;
+    }
+    const px = gridX + 0.5;
+    const py = gridY + 0.5;
+    let inside = false;
+    for (let i = 0, j = points.length - 1; i < points.length; j = i, i += 1) {
+      const xi = points[i].x;
+      const yi = points[i].y;
+      const xj = points[j].x;
+      const yj = points[j].y;
+      const intersects = yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
+      if (intersects) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+  return false;
+}
+
+function resolveAreaAt(gridX, gridY) {
+  for (const area of areas) {
+    if (areaContains(area, gridX, gridY)) {
+      return area;
+    }
+  }
+  return null;
+}
+
 function adjustColor(hex, amount) {
   let normalized = hex.replace('#', '');
   if (normalized.length === 3) {
@@ -370,6 +651,7 @@ const gameState = {
     targetX: 32 * TILE_SIZE,
     targetY: 24 * TILE_SIZE,
     lastTileKey: null,
+    currentAreaId: null,
     party: [makeCreature(MONSTER_DEX[0], 3)],
   },
   battle: {
@@ -383,147 +665,77 @@ const gameState = {
     pendingEffects: [],
     claimedRewards: new Set(),
   },
-  npcs: [
-    {
-      id: 'river_scholar',
-      name: 'River Scholar',
-      gridX: 43,
-      gridY: 6,
-      facing: 'right',
-      palette: { cloak: '#0f172a', trim: '#38bdf8', accent: '#f1f5f9' },
-      idleSeed: 0.42,
-      dialogue: {
-        start: 'greeting',
-        nodes: {
-          greeting: {
-            text: 'The Silverstream runs swift tonight. Its song changes with the moon—have you noticed?',
-            choices: [
-              { text: 'Ask about the river\'s secrets', next: 'secrets' },
-              { text: 'Compliment their studies', next: 'compliment' },
-              { text: 'Take your leave', next: null },
-            ],
-          },
-          secrets: {
-            text: 'Beneath the glimmer lies a current that only kindred spirits feel. Listen close near the old bridge.',
-            next: 'closing',
-            reward: {
-              type: 'trigger',
-              description: 'A lead for the hidden bridge resonance quest.',
-              repeatable: false,
-            },
-          },
-          compliment: {
-            text: 'Knowledge flows best when shared. Should you uncover river stones, bring one and we\'ll learn together.',
-            next: 'closing',
-          },
-          closing: {
-            text: 'May the river guide your steps. Return when its melody changes.',
-            choices: [{ text: 'Nod appreciatively', next: null }],
-          },
-        },
-      },
-    },
-    {
-      id: 'market_guard',
-      name: 'Market Guard',
-      gridX: 34,
-      gridY: 24,
-      facing: 'down',
-      palette: { cloak: '#1e293b', trim: '#f97316', accent: '#facc15' },
-      idleSeed: 0.18,
-      dialogue: {
-        start: 'post',
-        nodes: {
-          post: {
-            text: 'Hey there! The bazaar is busier than ever. Anything you\'re looking for?',
-            choices: [
-              { text: 'Ask for travel tips', next: 'tips' },
-              { text: 'Offer to help keep watch', next: 'watch' },
-              { text: 'Say goodbye', next: null },
-            ],
-          },
-          tips: {
-            text: 'Merchants whisper of rare blooms in the north caverns. Stock up on tonics before heading out.',
-            next: 'post',
-          },
-          watch: {
-            text: 'Appreciated! Take this guard ration—keeps you going on long patrols.',
-            choices: [
-              {
-                text: 'Accept the ration',
-                next: 'post',
-                reward: { type: 'item', description: 'Guard Ration', repeatable: false },
-              },
-            ],
-          },
-        },
-      },
-    },
-    {
-      id: 'cavern_scout',
-      name: 'Cavern Scout',
-      gridX: 18,
-      gridY: 30,
-      facing: 'left',
-      palette: { cloak: '#0f172a', trim: '#64748b', accent: '#94a3b8' },
-      idleSeed: 0.67,
-      dialogue: {
-        start: 'camp',
-        nodes: {
-          camp: {
-            text: 'Darkness breathes in the caverns. I map new tunnels each night.',
-            choices: [
-              { text: 'Request a map fragment', next: 'fragment' },
-              { text: 'Share your own findings', next: 'share' },
-              { text: 'Wish them luck', next: null },
-            ],
-          },
-          fragment: {
-            text: 'Here. This sketch marks a cavern bloom rumored to awaken stonefolk.',
-            next: null,
-            reward: { type: 'item', description: 'Cavern Map Fragment', repeatable: false },
-          },
-          share: {
-            text: 'Interesting... our paths cross beneath the ridge then. I will adjust tomorrow\'s survey.',
-            next: 'camp',
-          },
-        },
-      },
-    },
-    {
-      id: 'campfire_minstrel',
-      name: 'Campfire Minstrel',
-      gridX: 22,
-      gridY: 22,
-      facing: 'up',
-      palette: { cloak: '#b45309', trim: '#fde68a', accent: '#f8fafc' },
-      idleSeed: 0.91,
-      dialogue: {
-        start: 'greeting',
-        nodes: {
-          greeting: {
-            text: 'Care for a tune? These strings know tales of heroes and hearths.',
-            choices: [
-              { text: 'Listen to a soothing ballad', next: 'ballad' },
-              { text: 'Request an energetic melody', next: 'melody' },
-              { text: 'Decline politely', next: null },
-            ],
-          },
-          ballad: {
-            text: 'The song wraps around you like warm embers. Your companions breathe easier.',
-            next: null,
-            reward: { type: 'heal', repeatable: true },
-          },
-          melody: {
-            text: 'The chords spark with energy! Your lead partner feels ready for any challenge.',
-            next: null,
-            reward: { type: 'xp', amount: 18, repeatable: false },
-          },
-        },
-      },
-    },
-  ],
+  npcs: [],
+  visitedAreas: new Set(),
+  flags: {},
 };
+
+function ensureNpcSpawn(spawn) {
+  if (!spawn?.id) {
+    return false;
+  }
+  const base = NPC_LIBRARY[spawn.id];
+  if (!base) {
+    return false;
+  }
+  const existing = gameState.npcs.find((npc) => npc.id === spawn.id);
+  if (!existing) {
+    const clone = JSON.parse(JSON.stringify(base));
+    clone.gridX = spawn.gridX;
+    clone.gridY = spawn.gridY;
+    clone.facing = spawn.facing ?? clone.facing ?? 'down';
+    if (spawn.palette) {
+      clone.palette = { ...(clone.palette ?? {}), ...spawn.palette };
+    }
+    gameState.npcs.push(clone);
+    return true;
+  }
+  let changed = false;
+  if (typeof spawn.gridX === 'number' && existing.gridX !== spawn.gridX) {
+    existing.gridX = spawn.gridX;
+    changed = true;
+  }
+  if (typeof spawn.gridY === 'number' && existing.gridY !== spawn.gridY) {
+    existing.gridY = spawn.gridY;
+    changed = true;
+  }
+  if (spawn.facing && existing.facing !== spawn.facing) {
+    existing.facing = spawn.facing;
+    changed = true;
+  }
+  if (spawn.palette) {
+    existing.palette = { ...(existing.palette ?? {}), ...spawn.palette };
+    changed = true;
+  }
+  return changed;
+}
+
+function activateArea(area, firstVisit) {
+  if (!area) {
+    return;
+  }
+  let handledMessage = false;
+  if (firstVisit && typeof area.firstEnterEvent === 'function') {
+    const result = area.firstEnterEvent({ area, firstVisit });
+    if (result === true || (result && result.handledMessage)) {
+      handledMessage = true;
+    }
+  }
+  if (firstVisit && area.welcomeMessage && !handledMessage) {
+    showMessage(area.welcomeMessage, 2600);
+  }
+  let npcsChanged = false;
+  if (Array.isArray(area.npcSpawns)) {
+    area.npcSpawns.forEach((spawn) => {
+      if (ensureNpcSpawn(spawn)) {
+        npcsChanged = true;
+      }
+    });
+  }
+  if (npcsChanged) {
+    buildNpcSpatialIndex();
+  }
+}
 
 const npcByTile = new Map();
 
@@ -834,7 +1046,13 @@ function updateCamera() {
 }
 
 function updateLocationLabel() {
-  const tileChar = tileAt(gameState.player.gridX, gameState.player.gridY);
+  const { gridX, gridY } = gameState.player;
+  const area = resolveAreaAt(gridX, gridY);
+  if (area) {
+    locationLabel.textContent = area.displayName ?? area.id ?? 'Wilderness';
+    return;
+  }
+  const tileChar = tileAt(gridX, gridY);
   const tileInfo = tileDefinitions[tileChar];
   locationLabel.textContent = tileInfo?.label ?? 'Wilderness';
 }
@@ -873,10 +1091,27 @@ function healParty() {
   showMessage('Your party feels refreshed after resting by the campfire!', 2800);
 }
 
-function encounterChance(tileChar) {
+function encounterChance(tileChar, area) {
   const tile = tileDefinitions[tileChar];
   if (tile?.encounter) {
-    return tile.encounterRate ?? 0.18;
+    if (area?.encounters?.disabled) {
+      return 0;
+    }
+    let rate = tile.encounterRate ?? 0.18;
+    if (area?.encounters) {
+      const config = area.encounters;
+      if (typeof config.rateOverride === 'number') {
+        rate = config.rateOverride;
+      } else {
+        if (typeof config.rateMultiplier === 'number') {
+          rate *= config.rateMultiplier;
+        }
+        if (typeof config.flatModifier === 'number') {
+          rate += config.flatModifier;
+        }
+      }
+    }
+    return Math.max(0, Math.min(0.75, rate));
   }
   return 0;
 }
@@ -1122,8 +1357,8 @@ function spawnWildCreature() {
   return enemy;
 }
 
-function tryEncounter(tileChar) {
-  const chance = encounterChance(tileChar);
+function tryEncounter(tileChar, area) {
+  const chance = encounterChance(tileChar, area);
   if (chance > 0 && Math.random() < chance) {
     const enemy = spawnWildCreature();
     startBattle(enemy);
@@ -1144,8 +1379,22 @@ function handleTileEffects(tileChar, isNewTile) {
   } else if (isNewTile) {
     gameState.lastMessageTile = null;
   }
+  const previousAreaId = gameState.player.currentAreaId;
+  const area = resolveAreaAt(gameState.player.gridX, gameState.player.gridY);
+  if (area) {
+    const firstVisit = !gameState.visitedAreas.has(area.id);
+    if (area.id !== previousAreaId || firstVisit) {
+      activateArea(area, firstVisit);
+      if (firstVisit) {
+        gameState.visitedAreas.add(area.id);
+      }
+    }
+    gameState.player.currentAreaId = area.id;
+  } else if (previousAreaId) {
+    gameState.player.currentAreaId = null;
+  }
   if (isNewTile) {
-    tryEncounter(tileChar);
+    tryEncounter(tileChar, area);
   }
 }
 
@@ -1867,8 +2116,17 @@ function loop(timestamp) {
 }
 
 function initialize() {
-  buildNpcSpatialIndex();
   gameState.player.lastTileKey = `${gameState.player.gridX},${gameState.player.gridY}`;
+  const startArea = resolveAreaAt(gameState.player.gridX, gameState.player.gridY);
+  if (startArea) {
+    const firstVisit = !gameState.visitedAreas.has(startArea.id);
+    gameState.player.currentAreaId = startArea.id;
+    activateArea(startArea, firstVisit);
+    if (firstVisit) {
+      gameState.visitedAreas.add(startArea.id);
+    }
+  }
+  buildNpcSpatialIndex();
   updateLocationLabel();
   updatePartyLabel();
   updateCamera();
